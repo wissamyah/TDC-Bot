@@ -1,0 +1,11 @@
+{
+  "dailyEvents": [
+    {
+      "name": "Example Daily Event",
+      "time": "12:00",
+      "channel": null,
+      "message": "This is an example daily reminder",
+      "enabled": false
+    }
+  ]
+}

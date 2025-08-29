@@ -1,0 +1,18 @@
+{
+  "name": "tdc-bot",
+  "version": "1.0.0",
+  "description": "TDC Alliance Discord Bot for reminders and channel management",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": [],
+  "author": "TDC Alliance",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.22.1",
+    "dotenv": "^17.2.1",
+    "node-cron": "^4.2.1"
+  }
+}

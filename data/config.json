@@ -1,0 +1,6 @@
+{
+  "prefix": "!",
+  "timezone": "UTC",
+  "maxReminders": 100,
+  "reminderCheckInterval": 30000
+}
