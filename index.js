@@ -313,8 +313,8 @@ async function setupDailyEvents() {
         console.log(`Scheduled daily event "${event.name}" at ${event.time} ${event.timezone || 'UTC'}`);
     }
     
-    // Add the specific daily reminder for channel 1384261707681103995 at 2:30 AM UTC-2
-    cron.schedule('30 4 * * *', async () => {
+    // Add the specific daily reminder for channel 1384261707681103995 at 2:30 AM UTC+1
+    cron.schedule('30 1 * * *', async () => {
         try {
             const channel = client.channels.cache.get('1384261707681103995');
             if (channel) {
@@ -327,7 +327,7 @@ async function setupDailyEvents() {
         timezone: 'UTC'
     });
     
-    console.log('Scheduled daily arena reminder at 2:30 AM UTC-2 (4:30 AM UTC)');
+    console.log('Scheduled daily arena reminder at 2:30 AM UTC+1 (1:30 AM UTC)');
 }
 
 client.login(process.env.DISCORD_TOKEN);
