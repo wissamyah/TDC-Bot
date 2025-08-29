@@ -23,6 +23,24 @@ client.once('ready', async () => {
     const reminderData = await storage.readJSON('reminders.json') || { reminders: [] };
     reminders = reminderData.reminders;
     
+    // Set bot activity and rotate it to show the bot is active
+    const activities = [
+        { name: 'Dark War Survival', type: 0 }, // Playing
+        { name: `${reminders.length} active reminders`, type: 3 }, // Watching
+        { name: 'TDC Alliance', type: 0 }, // Playing
+        { name: '!reminder for help', type: 2 } // Listening
+    ];
+    
+    let activityIndex = 0;
+    setInterval(() => {
+        const activity = activities[activityIndex];
+        client.user.setActivity(activity.name, { type: activity.type });
+        activityIndex = (activityIndex + 1) % activities.length;
+    }, 5 * 60 * 1000); // Change activity every 5 minutes
+    
+    // Set initial activity
+    client.user.setActivity(activities[0].name, { type: activities[0].type });
+    
     startReminderCheck();
     await setupDailyEvents();
 });
@@ -398,6 +416,7 @@ async function setupDailyEvents() {
 client.login(process.env.DISCORD_TOKEN);
 
 const express = require('express');
+const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -405,6 +424,33 @@ app.get('/', (req, res) => {
     res.send('TDC Bot is running!');
 });
 
+app.get('/ping', (req, res) => {
+    const uptime = process.uptime();
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    res.json({
+        status: 'alive',
+        uptime: `${hours}h ${minutes}m`,
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Health check server running on port ${PORT}`);
+    
+    // Self-ping mechanism to prevent Render from sleeping
+    if (process.env.RENDER_EXTERNAL_URL) {
+        const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+        
+        setInterval(() => {
+            const url = `${process.env.RENDER_EXTERNAL_URL}/ping`;
+            https.get(url, (res) => {
+                console.log(`Self-ping successful: ${res.statusCode}`);
+            }).on('error', (err) => {
+                console.error('Self-ping failed:', err.message);
+            });
+        }, PING_INTERVAL);
+        
+        console.log('Self-ping mechanism activated to prevent sleep');
+    }
 });
