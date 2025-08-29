@@ -36,6 +36,10 @@ client.on('messageCreate', async (message) => {
 
     if (command === 'reminder') {
         await handleReminder(message, args);
+    } else if (command === 'reminder-list') {
+        await handleReminderList(message);
+    } else if (command === 'reminder-delete') {
+        await handleReminderDelete(message, args);
     } else if (command === 'wipe') {
         await handleWipe(message, args);
     }
@@ -68,7 +72,7 @@ async function handleReminder(message, args) {
     }
 
     const reminder = {
-        id: Date.now().toString(),
+        id: generateShortId(),
         channelId,
         title,
         createdBy: message.author.id,
@@ -81,7 +85,16 @@ async function handleReminder(message, args) {
     await storage.writeJSON('reminders.json', { reminders });
 
     const timeFormatted = formatTime(milliseconds);
-    message.reply(`✅ Reminder set! "${title}" will be sent to <#${channelId}> in ${timeFormatted}`);
+    const triggerDate = new Date(reminder.triggerAt);
+    const dateString = triggerDate.toLocaleString('en-US', { 
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+    });
+    message.reply(`✅ Reminder set! (ID: ${reminder.id})\n"${title}" will be sent to <#${channelId}> in ${timeFormatted}\n📅 Trigger time: ${dateString}`);
 }
 
 async function handleWipe(message, args) {
@@ -89,19 +102,61 @@ async function handleWipe(message, args) {
         return message.reply('You need Manage Messages permission to use this command!');
     }
 
-    const amount = parseInt(args[0]) || 100;
+    let amount = parseInt(args[0]) || 100;
     
-    if (amount < 1 || amount > 100) {
-        return message.reply('Please provide a number between 1 and 100!');
+    if (amount < 1) {
+        return message.reply('Please provide a number greater than 0!');
     }
 
     try {
-        const deleted = await message.channel.bulkDelete(amount + 1, true);
-        const reply = await message.channel.send(`🗑️ Deleted ${deleted.size - 1} messages!`);
+        let totalDeleted = 0;
+        amount = Math.min(amount, 1000);
+        
+        while (amount > 0) {
+            const toDelete = Math.min(amount, 100);
+            const messages = await message.channel.messages.fetch({ limit: toDelete });
+            
+            if (messages.size === 0) break;
+            
+            const deletable = messages.filter(msg => {
+                const age = Date.now() - msg.createdTimestamp;
+                return age < 14 * 24 * 60 * 60 * 1000;
+            });
+            
+            const old = messages.filter(msg => {
+                const age = Date.now() - msg.createdTimestamp;
+                return age >= 14 * 24 * 60 * 60 * 1000;
+            });
+            
+            if (deletable.size > 0) {
+                if (deletable.size === 1) {
+                    await deletable.first().delete();
+                    totalDeleted += 1;
+                } else {
+                    const deleted = await message.channel.bulkDelete(deletable, true);
+                    totalDeleted += deleted.size;
+                }
+            }
+            
+            for (const [, msg] of old) {
+                try {
+                    await msg.delete();
+                    totalDeleted++;
+                } catch (err) {
+                    console.error('Could not delete old message:', err);
+                }
+            }
+            
+            amount -= messages.size;
+            
+            if (messages.size < toDelete) break;
+        }
+        
+        const reply = await message.channel.send(`🗑️ Deleted ${totalDeleted} messages!`);
         setTimeout(() => reply.delete().catch(() => {}), 5000);
     } catch (error) {
         console.error('Error deleting messages:', error);
-        message.reply('There was an error deleting messages. Messages older than 14 days cannot be bulk deleted.');
+        message.reply('There was an error deleting messages.');
     }
 }
 
@@ -135,6 +190,68 @@ function formatTime(milliseconds) {
     if (seconds > 0) parts.push(`${seconds}s`);
     
     return parts.join(' ') || '0s';
+}
+
+function generateShortId() {
+    return Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+async function handleReminderList(message) {
+    const guildReminders = reminders.filter(r => r.guildId === message.guild.id);
+    
+    if (guildReminders.length === 0) {
+        return message.reply('No active reminders in this server.');
+    }
+    
+    let response = '📋 **Active Reminders:**\n\n';
+    
+    for (const reminder of guildReminders) {
+        const channel = message.guild.channels.cache.get(reminder.channelId);
+        const timeLeft = reminder.triggerAt - Date.now();
+        const triggerDate = new Date(reminder.triggerAt).toLocaleString('en-US', {
+            timeZone: 'UTC',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        response += `**ID:** ${reminder.id}\n`;
+        response += `**Title:** "${reminder.title}"\n`;
+        response += `**Channel:** ${channel ? `<#${reminder.channelId}>` : 'Unknown'}\n`;
+        response += `**Set by:** <@${reminder.createdBy}>\n`;
+        response += `**Triggers at:** ${triggerDate} UTC\n`;
+        response += `**Time left:** ${formatTime(Math.max(0, timeLeft))}\n\n`;
+    }
+    
+    const chunks = response.match(/[\s\S]{1,1900}/g) || [];
+    for (const chunk of chunks) {
+        await message.reply(chunk);
+    }
+}
+
+async function handleReminderDelete(message, args) {
+    if (!args[0]) {
+        return message.reply('Please provide a reminder ID! Usage: `!reminder-delete ID`');
+    }
+    
+    const id = args[0].toUpperCase();
+    const reminderIndex = reminders.findIndex(r => r.id === id && r.guildId === message.guild.id);
+    
+    if (reminderIndex === -1) {
+        return message.reply(`No reminder found with ID: ${id}`);
+    }
+    
+    const reminder = reminders[reminderIndex];
+    
+    if (reminder.createdBy !== message.author.id && !message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+        return message.reply('You can only delete your own reminders (or need Manage Messages permission).');
+    }
+    
+    reminders.splice(reminderIndex, 1);
+    await storage.writeJSON('reminders.json', { reminders });
+    
+    message.reply(`✅ Deleted reminder "${reminder.title}" (ID: ${id})`);
 }
 
 function startReminderCheck() {
@@ -189,10 +306,28 @@ async function setupDailyEvents() {
             } catch (error) {
                 console.error('Error sending daily event:', error);
             }
+        }, {
+            timezone: event.timezone || 'UTC'
         });
         
-        console.log(`Scheduled daily event "${event.name}" at ${event.time}`);
+        console.log(`Scheduled daily event "${event.name}" at ${event.time} ${event.timezone || 'UTC'}`);
     }
+    
+    // Add the specific daily reminder for channel 1384261707681103995 at 2:30 AM UTC-2
+    cron.schedule('30 4 * * *', async () => {
+        try {
+            const channel = client.channels.cache.get('1384261707681103995');
+            if (channel) {
+                await channel.send(`🏟️ **ARENA TIME!** Don't forget to complete your Dark War arena battles today! 🗡️`);
+            }
+        } catch (error) {
+            console.error('Error sending daily arena reminder:', error);
+        }
+    }, {
+        timezone: 'UTC'
+    });
+    
+    console.log('Scheduled daily arena reminder at 2:30 AM UTC-2 (4:30 AM UTC)');
 }
 
 client.login(process.env.DISCORD_TOKEN);
