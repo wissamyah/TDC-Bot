@@ -15,6 +15,14 @@
       "message": "🏟️ **ARENA TIME!** Don't forget to complete your Dark War arena battles today! 🗡️",
       "enabled": true,
       "timezone": "UTC"
+    },
+    {
+      "name": "Mental Health Check-In",
+      "time": "02:00",
+      "channel": "1385659874909753344",
+      "message": "Daily mental health check-in",
+      "enabled": true,
+      "timezone": "UTC"
     }
   ]
 }

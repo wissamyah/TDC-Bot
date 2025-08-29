@@ -328,6 +328,50 @@ async function setupDailyEvents() {
     });
     
     console.log('Scheduled daily arena reminder at 2:30 AM UTC+1 (1:30 AM UTC)');
+    
+    // Add daily mental health check-in for channel 1385659874909753344 at 3:00 AM UTC+1
+    cron.schedule('0 2 * * *', async () => {
+        try {
+            const channel = client.channels.cache.get('1385659874909753344');
+            if (channel) {
+                const message = await channel.send({
+                    embeds: [{
+                        title: '🌟 Daily Mental Health Check-In',
+                        description: 'How are you feeling today? React to let us know!',
+                        color: 0x7289DA,
+                        fields: [
+                            {
+                                name: 'Emotional States',
+                                value: '🩷 - Everything is fine\n🧡 - Feeling a bit "meh" today\n💙 - Feeling bad/sad\n💜 - Feeling worried/anxious\n❤️ - Feeling angry/stressed\n💚 - Feeling happy',
+                                inline: false
+                            },
+                            {
+                                name: 'Want to talk?',
+                                value: '✅ - I want to talk about it\n❌ - I don\'t want to talk about it',
+                                inline: false
+                            }
+                        ],
+                        footer: {
+                            text: 'Remember: It\'s okay not to be okay. Your TDC family is here for you! 💪'
+                        },
+                        timestamp: new Date()
+                    }]
+                });
+                
+                // Add reactions for easy interaction
+                const reactions = ['🩷', '🧡', '💙', '💜', '❤️', '💚', '✅', '❌'];
+                for (const reaction of reactions) {
+                    await message.react(reaction);
+                }
+            }
+        } catch (error) {
+            console.error('Error sending daily mental health check-in:', error);
+        }
+    }, {
+        timezone: 'UTC'
+    });
+    
+    console.log('Scheduled daily mental health check-in at 3:00 AM UTC+1 (2:00 AM UTC)');
 }
 
 client.login(process.env.DISCORD_TOKEN);
