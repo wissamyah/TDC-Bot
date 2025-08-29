@@ -58,9 +58,30 @@ async function handleReminder(message, args) {
         return message.reply('Channel not found!');
     }
 
-    const titleMatch = message.content.match(/"([^"]+)"/);
+    // Support all types of quotes from different keyboards
+    const quotePatterns = [
+        /"([^"]+)"/,           // Straight double quotes
+        /"([^"]+)"/,           // Curly left/right double quotes
+        /'([^']+)'/,           // Straight single quotes
+        /'([^']+)'/,           // Curly left/right single quotes
+        /«([^»]+)»/,           // Angle quotes
+        /‹([^›]+)›/,           // Single angle quotes
+        /„([^"]+)"/,           // German quotes
+        /‚([^']+)'/,           // German single quotes
+        /「([^」]+)」/,         // Japanese quotes
+        /『([^』]+)』/,         // Japanese double quotes
+        /《([^》]+)》/,         // Chinese quotes
+        /"([^"]+)"/            // Alternative curly quotes
+    ];
+    
+    let titleMatch = null;
+    for (const pattern of quotePatterns) {
+        titleMatch = message.content.match(pattern);
+        if (titleMatch) break;
+    }
+    
     if (!titleMatch) {
-        return message.reply('Please provide a title in quotes! Usage: `!reminder #channel "title" 2h30m`');
+        return message.reply('Please provide a title in quotes! Usage: `!reminder #channel "title" 2h30m`\n(Accepts any type of quotes: " " \' \' « » etc.)');
     }
     
     const title = titleMatch[1];
