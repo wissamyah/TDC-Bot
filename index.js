@@ -357,7 +357,20 @@ async function setupDailyEvents() {
         try {
             const channel = client.channels.cache.get('1384261707681103995');
             if (channel) {
-                await channel.send(`🏟️ **ARENA TIME!** Don't forget to complete your Dark War arena battles today! 🗡️`);
+                await channel.send({
+                    embeds: [{
+                        title: '🏟️ ARENA TIME!',
+                        description: 'Don\'t forget to complete your Dark War arena battles today! 🗡️',
+                        color: 0xFF4500,
+                        fields: [
+                            {
+                                name: 'Daily Arena Reminder',
+                                value: 'Complete your arena battles to maximize your rewards and climb the rankings!',
+                                inline: false
+                            }
+                        ]
+                    }]
+                });
             }
         } catch (error) {
             console.error('Error sending daily arena reminder:', error);
@@ -392,8 +405,7 @@ async function setupDailyEvents() {
                         ],
                         footer: {
                             text: 'Remember: It\'s okay not to be okay. Your TDC family is here for you! 💪'
-                        },
-                        timestamp: new Date()
+                        }
                     }]
                 });
                 
