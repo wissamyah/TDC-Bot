@@ -358,6 +358,7 @@ async function setupDailyEvents() {
             const channel = client.channels.cache.get('1384261707681103995');
             if (channel) {
                 await channel.send({
+                    content: '@everyone',
                     embeds: [{
                         title: '🏟️ ARENA TIME!',
                         description: 'Don\'t forget to complete your Dark War arena battles today! 🗡️',
