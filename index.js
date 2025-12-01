@@ -45,6 +45,38 @@ client.once('ready', async () => {
     await setupDailyEvents();
 });
 
+// Welcome new members
+client.on('guildMemberAdd', async (member) => {
+    try {
+        const welcomeChannel = member.guild.channels.cache.get('1437915150027063416');
+        if (welcomeChannel) {
+            await welcomeChannel.send({
+                embeds: [{
+                    title: 'Welcome to TDC Alliance!',
+                    description: `Hey ${member}, welcome to the TDC Alliance! We're glad to have you here.`,
+                    color: 0x00FF00,
+                    thumbnail: {
+                        url: member.user.displayAvatarURL({ dynamic: true })
+                    },
+                    fields: [
+                        {
+                            name: 'Getting Started',
+                            value: 'Feel free to introduce yourself and explore our channels!',
+                            inline: false
+                        }
+                    ],
+                    footer: {
+                        text: `Member #${member.guild.memberCount}`
+                    },
+                    timestamp: new Date().toISOString()
+                }]
+            });
+        }
+    } catch (error) {
+        console.error('Error sending welcome message:', error);
+    }
+});
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (!message.content.startsWith(config.prefix)) return;
@@ -355,7 +387,7 @@ async function setupDailyEvents() {
     // Add the specific daily reminder for channel 1384261707681103995 at 2:30 AM UTC+1
     cron.schedule('30 1 * * *', async () => {
         try {
-            const channel = client.channels.cache.get('1384261707681103995');
+            const channel = client.channels.cache.get('1437916211932299325');
             if (channel) {
                 await channel.send({
                     content: '@everyone',
