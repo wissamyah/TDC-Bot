@@ -340,13 +340,20 @@ function startReminderCheck() {
         
         for (const reminder of triggered) {
             try {
-                const guild = client.guilds.cache.get(reminder.guildId);
-                if (!guild) continue;
-                
-                const channel = guild.channels.cache.get(reminder.channelId);
-                if (!channel) continue;
-                
+                const guild = await client.guilds.fetch(reminder.guildId).catch(() => null);
+                if (!guild) {
+                    console.error(`Failed to fetch guild ${reminder.guildId} for reminder ${reminder.id}`);
+                    continue;
+                }
+
+                const channel = await guild.channels.fetch(reminder.channelId).catch(() => null);
+                if (!channel) {
+                    console.error(`Failed to fetch channel ${reminder.channelId} for reminder ${reminder.id}`);
+                    continue;
+                }
+
                 await channel.send(`⏰ **Reminder:** ${reminder.title}\n*Set by <@${reminder.createdBy}>*`);
+                console.log(`Reminder ${reminder.id} triggered successfully`);
             } catch (error) {
                 console.error('Error sending reminder:', error);
             }
